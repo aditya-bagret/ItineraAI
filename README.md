@@ -8,7 +8,6 @@ The frontend has been implemented using:
 - HTML
 - CSS
 - JavaScript
-- TailwindCSS for styling
 
 ### Directory Structure
 
@@ -59,7 +58,6 @@ The frontend has been implemented using:
    - Display current weather and forecast for the destination
 
 6. **Responsive Design**
-   - Mobile-friendly layout using TailwindCSS
    - Responsive navigation and content display
 
 ### How to Run
