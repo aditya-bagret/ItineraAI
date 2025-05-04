@@ -125,6 +125,11 @@ The frontend is integrated with the existing Flask backend, which provides:
 
 ---
 
-
+## Architecture Diagram
 ![image](https://github.com/user-attachments/assets/a8a30816-4799-4d19-b1ca-afbbbaa9402c)
 
+
+---
+
+## Poster
+https://www.canva.com/design/DAGmPRo8ICc/11QS-4vcVJiY22jfRLAYEg/edit?utm_content=DAGmPRo8ICc&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
