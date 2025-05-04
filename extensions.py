@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_mysqldb import MySQL
 from flask_bcrypt import Bcrypt
-import groq
+import groq 
 import os
 from dotenv import load_dotenv
 
