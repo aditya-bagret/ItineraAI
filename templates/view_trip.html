@@ -4,15 +4,31 @@
 
 {% block styles %}
 <style>
+    /* Day Card Styles */
     .day-card {
-        border-left: 4px solid #0d6efd;
+        border-left: 4px solid #A3BFFA; /* Muted Teal */
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
     }
+
+    .day-card:hover {
+        border-left-color: #FF9999; /* Warm Coral on Hover */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Activity Item Styles */
     .activity-item {
-        border-left: 2px solid #dee2e6;
+        border-left: 2px solid #C4D7B2; /* Soft Sage Green */
         padding-left: 15px;
         margin-bottom: 15px;
         position: relative;
+        transition: border-color 0.3s ease, transform 0.3s ease;
     }
+
+    .activity-item:hover {
+        border-left-color: #FF9999; /* Warm Coral on Hover */
+        transform: translateX(5px);
+    }
+
     .activity-item:before {
         content: '';
         position: absolute;
@@ -21,21 +37,48 @@
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        background-color: #0d6efd;
+        background-color: #A3BFFA; /* Muted Teal */
+        transition: background-color 0.3s ease;
     }
+
+    .activity-item:hover:before {
+        background-color: #FF9999; /* Warm Coral on Hover */
+    }
+
+    /* Weather Icon Styles */
     .weather-icon {
         width: 50px;
         height: 50px;
+        transition: transform 0.3s ease;
     }
+
+    .weather-icon:hover {
+        transform: scale(1.1);
+    }
+
+    /* Favorite Button Styles */
     .favorite-btn {
         cursor: pointer;
-        transition: color 0.3s;
+        transition: color 0.3s ease, transform 0.3s ease;
     }
+
     .favorite-btn:hover {
-        color: #ffc107;
+        color: #FF9999; /* Warm Coral */
+        transform: scale(1.2);
     }
+
     .favorite-btn.active {
-        color: #ffc107;
+        color: #FF9999; /* Warm Coral */
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.5s ease-out;
     }
 </style>
 {% endblock %}
