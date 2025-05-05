@@ -1,135 +1,242 @@
-Here’s the updated README with the **tech stack** section added to reflect your use of **Python, MySQL, HTML, CSS, and JavaScript**:
+# ItineraAI - AI-Powered Trip Planner
 
----
 
-# AI Trip Planner
+ItineraAI is an intelligent travel planning application that leverages AI to create personalized trip itineraries based on user preferences, budget, and travel dates. The platform includes a chatbot travel assistant to help users refine their plans and get travel recommendations.
 
-A smart travel planning application that uses AI to generate personalized trip itineraries with additional features like a chatbot travel assistant.
+## ✨ Features
 
-## 🛠 Tech Stack
+### 🧳 Trip Planning & Management
+- **AI-Generated Itineraries**: Create personalized day-by-day travel plans using Groq AI
+- **Trip Dashboard**: View, edit, and manage all your planned trips
+- **Detailed Itineraries**: Get recommendations for morning, afternoon, evening activities, meals, and accommodations
+- **Budget Tracking**: Set and monitor your travel budget
 
-* **Frontend**: HTML, CSS, JavaScript
-* **Backend**: Python (Flask)
-* **Database**: MySQL
-* **AI Integration**: Groq for itinerary generation
-* **APIs**: Weather API, Chatbot assistant
+### 🏨 Booking Management
+- **Centralized Booking System**: Track all your travel bookings in one place
+- **Multiple Booking Types**: Support for flights, hotels, car rentals, activities, and more
+- **Confirmation Tracking**: Store confirmation numbers and booking details
 
-## Frontend Implementation
+### 🤖 AI Travel Assistant
+- **Intelligent Chatbot**: Get travel advice, recommendations, and answers to your questions
+- **Context-Aware Responses**: The assistant remembers your conversation history
+- **Travel-Focused**: Optimized for travel-related queries and planning assistance
 
-The frontend has been implemented using:
+### 📝 Reviews & Ratings
+- **Trip Reviews**: Share your experiences and rate destinations
+- **Community Feedback**: Mark helpful reviews to improve visibility
+- **Top Destinations**: Discover highly-rated travel spots
 
-* HTML
-* CSS
-* JavaScript
+### 🌦️ Weather Integration
+- **Current Conditions**: Check weather at your destination
+- **Forecast Data**: Plan activities based on upcoming weather
+- **Weather Caching**: Efficient data storage for quick access
 
-### Directory Structure
+## 🛠️ Tech Stack
+
+### Frontend
+- **HTML/CSS/JavaScript**: Responsive and interactive user interface
+- **Bootstrap**: Modern and mobile-friendly design components
+
+### Backend
+- **Python 3.x**: Core programming language
+- **Flask 2.3.3**: Web framework for building the application
+- **Jinja2 3.1.2**: Template engine for dynamic HTML rendering
+
+### Database
+- **MySQL**: Relational database for storing user data, trips, bookings, and reviews
+- **Flask-MySQLdb**: MySQL database integration for Flask
+
+### AI & External Services
+- **Groq API**: AI model integration for itinerary generation and chatbot functionality
+- **Weather API**: Real-time weather data for destinations
+
+### Security
+- **Flask-Bcrypt**: Password hashing and security
+- **Session Management**: Secure user authentication and authorization
+
+## 📋 Prerequisites
+
+- Python 3.8 or higher
+- MySQL Server 8.0 or higher
+- Groq API key (for AI features)
+- Weather API key (for weather integration)
+
+## 🚀 Installation & Setup
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/aditya-bagret/ItineraAI.git
+cd ItineraAI
+```
+
+### 2. Set Up a Virtual Environment (Recommended)
+```bash
+python -m venv venv
+# On Windows
+venv\Scripts\activate
+# On macOS/Linux
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure Environment Variables
+Create a `.env` file in the root directory with the following variables:
+```
+# Database Configuration
+MYSQL_HOST=localhost
+MYSQL_USER=your_mysql_username
+MYSQL_PASSWORD=your_mysql_password
+MYSQL_DB=trip_planner2
+
+# Application Settings
+SECRET_KEY=your_secret_key
+DEBUG=True
+PORT=5000
+
+# API Keys
+GROQ_API_KEY=your_groq_api_key
+WEATHER_API_KEY=your_weather_api_key
+
+# Database Initialization (set to True only when you want to initialize the database)
+INIT_DB=False
+```
+
+### 5. Initialize the Database
+```bash
+# Set INIT_DB=True in your .env file for first run
+python run.py
+```
+
+### 6. Run the Application
+```bash
+python run.py
+```
+
+### 7. Access the Application
+Open your browser and navigate to:
+```
+http://localhost:5000
+```
+
+## 📁 Project Structure
 
 ```
-/static
-  /css
-    - styles.css (Main CSS file with custom styles)
-  /js
-    - main.js (JavaScript functionality for interactive elements)
-  /images
-    - Various image assets for the application
-
-/templates
-  - base.html (Base template with common layout elements)
-  - index.html (Homepage)
-  - login.html (User login)
-  - register.html (User registration)
-  - profile.html (User profile)
-  - trips.html (List of user trips)
-  - new_trip.html (Create new trip form)
-  - view_trip.html (Detailed trip view with itinerary)
-  - 404.html (Not found error page)
-  - 500.html (Server error page)
+ItineraAI/
+├── app.py                  # Main application file
+├── extensions.py           # Flask extensions and configurations
+├── run.py                  # Application entry point
+├── requirements.txt        # Python dependencies
+├── .env                    # Environment variables (create this)
+├── database/
+│   ├── init_db.py          # Database initialization script
+│   └── schema.sql          # Database schema
+├── routes/
+│   ├── api_routes.py       # API endpoints
+│   ├── auth_routes.py      # Authentication routes
+│   ├── booking_routes.py   # Booking management routes
+│   ├── chatbot_routes.py   # Chatbot functionality
+│   ├── review_routes.py    # Review management routes
+│   ├── trip_routes.py      # Trip management routes
+│   └── weather_routes.py   # Weather data routes
+├── static/
+│   ├── css/                # Stylesheets
+│   ├── js/                 # JavaScript files
+│   └── images/             # Image assets
+├── templates/              # HTML templates
+│   ├── base.html           # Base template
+│   ├── index.html          # Homepage
+│   ├── login.html          # Login page
+│   └── ...                 # Other templates
+└── utils/                  # Utility functions
+    ├── auth_utils.py       # Authentication utilities
+    ├── itinerary_generator.py # AI itinerary generation
+    └── ...                 # Other utilities
 ```
 
-### Features Implemented
 
-1. **User Authentication**
 
-   * Login and registration forms
-   * User profile management
+## 🔄 API Endpoints
 
-2. **Trip Management**
+The application provides several API endpoints for integration with other services:
 
-   * Create new trips with destination, dates, budget, and preferences
-   * View all trips in a grid layout
-   * Detailed trip view with day-by-day itinerary
-   * Edit, delete, duplicate, and share trips
+- `/api/trips`: Manage trips programmatically
+- `/api/bookings`: Access booking information
+- `/api/reviews`: Get review data
+- `/api/weather`: Retrieve weather information
+- `/chat`: Interact with the AI assistant
 
-3. **Itinerary Display**
+## 🔒 Security Features
 
-   * Day-by-day breakdown of activities
-   * Morning, lunch, afternoon, dinner, and evening activities
-   * Accommodation suggestions
+- Password hashing with bcrypt
+- Secure session management
+- Input validation and sanitization
+- CSRF protection
+- Parameterized SQL queries to prevent injection
 
-4. **Booking Management**
+## 🧪 Testing
 
-   * Add and manage bookings for flights, hotels, etc.
-   * Track booking details and confirmation numbers
+To run the tests:
+```bash
+# Coming soon
+```
 
-5. **Weather Integration**
+## 🛣️ Roadmap
 
-   * Display current weather and forecast for the destination
+### Short-term
+- Add map integration for visualizing trip locations
+- Implement drag-and-drop functionality for reordering activities
+- Enhance mobile responsiveness
 
-6. **Chatbot Travel Assistant**
+### Medium-term
+- Add social sharing features for trips
+- Implement direct integration with booking APIs
+- Add multi-language support
 
-   * AI-powered chatbot for assisting with trip planning
-   * Provides travel tips, recommendations, and helps with itinerary suggestions
+### Long-term
+- Develop mobile applications (iOS/Android)
+- Implement machine learning for personalized recommendations
+- Add virtual reality previews of destinations
 
-7. **Responsive Design**
+## 🤝 Contributing
 
-   * Mobile-friendly layout
-   * Responsive navigation and content display
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-### How to Run
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-1. Make sure all required Python packages are installed:
+## 📄 License
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-2. Run the application:
+## 📊 Architecture Diagram
 
-   ```bash
-   python run.py
-   ```
+![Architecture Diagram](https://github.com/user-attachments/assets/a8a30816-4799-4d19-b1ca-afbbbaa9402c)
 
-3. Access the application in your browser at:
+## 📊 E-R Diagram
 
-   ```bash
-   http://localhost:5000
-   ```
+![ER Diagram](https://github.com/user-attachments/assets/7ab8c704-2000-4a03-8652-a64167d6e468)
 
-## Backend Integration
+## 📊 Relational Diagram
 
-The frontend is integrated with the existing Flask backend, which provides:
+![ER Diagram](https://github.com/user-attachments/assets/7ab8c704-2000-4a03-8652-a64167d6e468)
 
-* User authentication and session management
-* Database operations for trips, bookings, and reviews
-* AI-powered itinerary generation using Groq
-* Weather data integration
-* Chatbot integration for travel assistance
+## 🎨 Project Poster
 
-## Future Enhancements
+![AI Travel Planner](https://github.com/user-attachments/assets/f3716948-1511-463e-9edf-4f9c66abf7d1)
 
-* Add more interactive elements to the itinerary planner
-* Implement drag-and-drop functionality for reordering activities
-* Add a map view for visualizing the trip locations
-* Enhance the booking system with direct integration to booking APIs
-* Implement social sharing features for trips
-
----
-
-## Architecture Diagram
-![image](https://github.com/user-attachments/assets/a8a30816-4799-4d19-b1ca-afbbbaa9402c)
-
+Check out our project poster [here](https://www.canva.com/design/DAGmPRo8ICc/11QS-4vcVJiY22jfRLAYEg/edit?utm_content=DAGmPRo8ICc&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton).
 
 ---
 
-## Poster
-https://www.canva.com/design/DAGmPRo8ICc/11QS-4vcVJiY22jfRLAYEg/edit?utm_content=DAGmPRo8ICc&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+## 📞 Contact
+
+For questions or support, please contact [your-email@example.com](mailto:your-email@example.com).
+
+Happy traveling with ItineraAI! ✈️🌍
