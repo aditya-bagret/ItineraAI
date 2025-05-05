@@ -237,6 +237,6 @@ Check out our project poster [here](https://www.canva.com/design/DAGmPRo8ICc/11Q
 
 ## 📞 Contact
 
-For questions or support, please contact [your-email@example.com](mailto:your-email@example.com).
+For questions or support, please contact [Aditya](mailto:adityasharma4work@gmail.com).
 
 Happy traveling with ItineraAI! ✈️🌍
