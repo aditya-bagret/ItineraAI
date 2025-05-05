@@ -217,19 +217,20 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📊 Architecture Diagram
 
-![Architecture Diagram](https://github.com/user-attachments/assets/a8a30816-4799-4d19-b1ca-afbbbaa9402c)
+<img src="https://i.postimg.cc/qvVGZ4FM/image.png" width="400">
 
 ## 📊 E-R Diagram
 
-![ER Diagram](https://github.com/user-attachments/assets/7ab8c704-2000-4a03-8652-a64167d6e468)
+<img src="https://i.postimg.cc/gj1KpWks/ER-Diagram.png" width="400">
 
 ## 📊 Relational Diagram
 
-![ER Diagram](https://github.com/user-attachments/assets/7ab8c704-2000-4a03-8652-a64167d6e468)
+<img src="https://i.postimg.cc/wvGX5pJz/image.png" width="400">
 
 ## 🎨 Project Poster
 
-![AI Travel Planner](https://github.com/user-attachments/assets/f3716948-1511-463e-9edf-4f9c66abf7d1)
+<img src="https://i.postimg.cc/d1HBWCbz/AI-Travel-Planner.png" width="400">
+
 
 Check out our project poster [here](https://www.canva.com/design/DAGmPRo8ICc/11QS-4vcVJiY22jfRLAYEg/edit?utm_content=DAGmPRo8ICc&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton).
 
