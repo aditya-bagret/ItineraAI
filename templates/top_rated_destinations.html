@@ -3,90 +3,112 @@
 {% block title %}Top Rated Destinations - AI Trip Planner{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <h1><i class="fas fa-trophy me-2"></i>Top Rated Destinations</h1>
-        <p class="lead">Discover the highest-rated travel destinations based on user reviews</p>
-    </div>
-    <div class="col-md-4 text-end">
-        <a href="{{ url_for('review.reviews') }}" class="btn btn-outline-primary">
-            <i class="fas fa-star me-1"></i>View All Reviews
-        </a>
-    </div>
-</div>
+    <div class="container mt-5">
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <!-- <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li> -->
+                <li class="breadcrumb-item active" aria-current="page">Top Rated Destinations</li>
+            </ol>
+        </nav>
 
-{% if destinations %}
-<div class="row">
-    {% for destination in destinations %}
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <img src="https://source.unsplash.com/500x300/?{{ destination.destination|urlencode }}" class="card-img-top" alt="{{ destination.destination }}">
-            <div class="card-body">
-                <h5 class="card-title">{{ destination.destination }}</h5>
-                <div class="mb-2">
-                    <div class="star-rating">
-                        {% for i in range(5) %}
-                            {% if i < destination.avg_rating|int %}
-                            <i class="fas fa-star text-warning"></i>
-                            {% elif i < destination.avg_rating %}
-                            <i class="fas fa-star-half-alt text-warning"></i>
-                            {% else %}
-                            <i class="far fa-star text-warning"></i>
-                            {% endif %}
-                        {% endfor %}
-                        <span class="ms-2">{{ destination.avg_rating|round(1) }}</span>
+        <!-- Back to Home Button -->
+        <div class="mb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Home
+            </a>
+        </div>
+
+        <!-- Page Header -->
+        <h2 class="mb-4">Top Rated Destinations</h2>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{ message }}
                     </div>
-                    <small class="text-muted">{{ destination.review_count }} reviews</small>
-                </div>
-                <p class="card-text">
-                    {{ destination.description if destination.description else "Explore this highly-rated destination and discover why travelers love it." }}
-                </p>
-                <a href="{{ url_for('review.reviews', destination=destination.destination) }}" class="btn btn-outline-primary">
-                    <i class="fas fa-star me-1"></i>Read Reviews
-                </a>
-                {% if session.logged_in %}
-                <a href="{{ url_for('trip.new_trip', destination=destination.destination) }}" class="btn btn-primary ms-2">
-                    <i class="fas fa-plane-departure me-1"></i>Plan Trip
-                </a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% else %}
-<div class="row">
-    <div class="col-md-12">
-        <div class="text-center py-5">
-            <i class="fas fa-map-marked-alt fa-3x text-muted mb-3"></i>
-            <h4>No top-rated destinations yet</h4>
-            <p class="text-muted">Destinations will appear here once they receive enough reviews.</p>
-        </div>
-    </div>
-</div>
-{% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card bg-light">
-            <div class="card-body">
-                <h5 class="card-title"><i class="fas fa-info-circle me-2"></i>About Top Rated Destinations</h5>
-                <p class="card-text">
-                    This list shows destinations with at least 3 reviews, ranked by their average rating. 
-                    Destinations with more reviews may appear higher in case of a tie.
-                    Share your own travel experiences to help other travelers discover great destinations!
-                </p>
-                {% if session.logged_in %}
-                <a href="{{ url_for('trip.trips') }}" class="btn btn-primary">
-                    <i class="fas fa-star me-1"></i>Review Your Trips
-                </a>
-                {% else %}
-                <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
-                    <i class="fas fa-sign-in-alt me-1"></i>Login to Share Reviews
-                </a>
-                {% endif %}
-            </div>
+        <!-- Top Rated Destinations -->
+        <div class="row">
+            {% if destinations %}
+                {% for dest in destinations %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 destination-card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ dest.destination }}</h5>
+                                <p class="card-text">
+                                    <strong>Average Rating:</strong> {{ "%.1f"|format(dest.avg_rating) }}/5<br>
+                                    <strong>Reviews:</strong> {{ dest.review_count }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12">
+                    <p>No top-rated destinations available (requires at least 3 reviews).</p>
+                </div>
+            {% endif %}
         </div>
     </div>
-</div>
+
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            padding: 0;
+        }
+        .breadcrumb-item a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .breadcrumb-item a:hover {
+            text-decoration: underline;
+        }
+        .btn-outline-primary {
+            border-color: #007bff;
+            color: #007bff;
+        }
+        .btn-outline-primary:hover {
+            background-color: #007bff;
+            color: #fff;
+        }
+        h2 {
+            color: #343a40;
+            font-weight: 600;
+        }
+        .destination-card {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out;
+        }
+        .destination-card:hover {
+            transform: translateY(-5px);
+        }
+        .card-title {
+            color: #343a40;
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+        .card-text {
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+        .card-text strong {
+            color: #343a40;
+        }
+    </style>
 {% endblock %}

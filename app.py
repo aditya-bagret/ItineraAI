@@ -1,4 +1,5 @@
 from flask import Flask, render_template, url_for, request, jsonify, session
+from extensions import create_app, mysql
 from flask_cors import CORS
 import os
 from extensions import create_app, mysql, bcrypt, groq_client

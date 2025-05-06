@@ -29,26 +29,39 @@ def register():
             flash('Invalid email address', 'danger')
             return render_template('register.html')
         
-        # Check if user already exists
-        cursor = mysql.connection.cursor()
-        cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
-        user = cursor.fetchone()
-        
-        if user:
-            flash('Email already exists', 'danger')
+        # Password length validation
+        if len(password) < 6:
+            flash('Password must be at least 6 characters long', 'danger')
             return render_template('register.html')
         
-        # Hash password
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        
-        # Insert user into database
-        cursor.execute('INSERT INTO users (username, email, password) VALUES (%s, %s, %s)', 
-                      (username, email, hashed_password))
-        mysql.connection.commit()
-        cursor.close()
-        
-        flash('Registration successful! Please log in.', 'success')
-        return redirect(url_for('auth.login'))
+        cursor = None
+        try:
+            # Check if user already exists
+            cursor = mysql.connection.cursor()
+            cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+            user = cursor.fetchone()
+            
+            if user:
+                flash('Email already exists', 'danger')
+                return render_template('register.html')
+            
+            # Hash password
+            hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+            
+            # Insert user into database
+            cursor.execute('INSERT INTO users (username, email, password) VALUES (%s, %s, %s)', 
+                          (username, email, hashed_password))
+            mysql.connection.commit()
+            
+            flash('Registration successful! Please log in.', 'success')
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            mysql.connection.rollback()
+            flash(f'Error during registration: {str(e)}', 'danger')
+            return render_template('register.html')
+        finally:
+            if cursor:
+                cursor.close()
     
     return render_template('register.html')
 
@@ -65,28 +78,37 @@ def login():
             flash('Please fill out all fields', 'danger')
             return render_template('login.html')
         
-        # Check if user exists
-        cursor = mysql.connection.cursor()
-        cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
-        user = cursor.fetchone()
-        cursor.close()
-        
-        if not user:
-            flash('Invalid email or password', 'danger')
-            return render_template('login.html')
-        
-        # Check password
-        if bcrypt.check_password_hash(user['password'], password):
-            # Create session
-            session['logged_in'] = True
-            session['user_id'] = user['id']
-            session['username'] = user['username']
+        cursor = None
+        try:
+            # Check if user exists
+            cursor = mysql.connection.cursor()
+            cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+            user = cursor.fetchone()
             
-            flash('Login successful!', 'success')
-            return redirect(url_for('index'))
-        else:
-            flash('Invalid email or password', 'danger')
+            if not user:
+                flash('Invalid email or password', 'danger')
+                return render_template('login.html')
+            
+            # Check password
+            if bcrypt.check_password_hash(user['password'], password):
+                # Create session (align with login_required)
+                session['logged_in'] = True
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                # Check if user is admin (assuming 'is_admin' column exists in users table)
+                session['is_admin'] = user.get('is_admin', 0) == 1
+                
+                flash('Login successful!', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('Invalid email or password', 'danger')
+                return render_template('login.html')
+        except Exception as e:
+            flash(f'Error during login: {str(e)}', 'danger')
             return render_template('login.html')
+        finally:
+            if cursor:
+                cursor.close()
     
     return render_template('login.html')
 
@@ -99,25 +121,30 @@ def logout():
 
 # User Profile
 @auth_bp.route('/profile')
+@login_required
 def profile():
-    if 'logged_in' not in session:
-        flash('Please log in to view your profile', 'danger')
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+        user = cursor.fetchone()
+        
+        if not user:
+            flash('User not found', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        return render_template('profile.html', user=user)
+    except Exception as e:
+        flash(f'Error loading profile: {str(e)}', 'danger')
         return redirect(url_for('auth.login'))
-    
-    cursor = mysql.connection.cursor()
-    cursor.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
-    user = cursor.fetchone()
-    cursor.close()
-    
-    return render_template('profile.html', user=user)
+    finally:
+        if cursor:
+            cursor.close()
 
 # Update Profile
 @auth_bp.route('/profile/update', methods=['GET', 'POST'])
+@login_required
 def update_profile():
-    if 'logged_in' not in session:
-        flash('Please log in to update your profile', 'danger')
-        return redirect(url_for('auth.login'))
-    
     if request.method == 'POST':
         # Get form data
         username = request.form['username']
@@ -133,22 +160,49 @@ def update_profile():
             flash('Invalid email address', 'danger')
             return redirect(url_for('auth.update_profile'))
         
-        # Update user in database
+        cursor = None
+        try:
+            cursor = mysql.connection.cursor()
+            # Check if email is already taken by another user
+            cursor.execute('SELECT * FROM users WHERE email = %s AND id != %s', (email, session['user_id']))
+            existing_user = cursor.fetchone()
+            
+            if existing_user:
+                flash('Email is already taken by another user', 'danger')
+                return redirect(url_for('auth.update_profile'))
+            
+            # Update user in database
+            cursor.execute('UPDATE users SET username = %s, email = %s WHERE id = %s', 
+                          (username, email, session['user_id']))
+            mysql.connection.commit()
+            
+            # Update session
+            session['username'] = username
+            
+            flash('Profile updated successfully!', 'success')
+            return redirect(url_for('auth.profile'))
+        except Exception as e:
+            mysql.connection.rollback()
+            flash(f'Error updating profile: {str(e)}', 'danger')
+            return redirect(url_for('auth.update_profile'))
+        finally:
+            if cursor:
+                cursor.close()
+    
+    cursor = None
+    try:
         cursor = mysql.connection.cursor()
-        cursor.execute('UPDATE users SET username = %s, email = %s WHERE id = %s', 
-                      (username, email, session['user_id']))
-        mysql.connection.commit()
-        cursor.close()
+        cursor.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+        user = cursor.fetchone()
         
-        # Update session
-        session['username'] = username
+        if not user:
+            flash('User not found', 'danger')
+            return redirect(url_for('auth.login'))
         
-        flash('Profile updated successfully!', 'success')
-        return redirect(url_for('auth.profile'))
-    
-    cursor = mysql.connection.cursor()
-    cursor.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
-    user = cursor.fetchone()
-    cursor.close()
-    
-    return render_template('update_profile.html', user=user)
+        return render_template('update_profile.html', user=user)
+    except Exception as e:
+        flash(f'Error loading update profile page: {str(e)}', 'danger')
+        return redirect(url_for('auth.login'))
+    finally:
+        if cursor:
+            cursor.close()

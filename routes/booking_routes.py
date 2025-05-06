@@ -1,8 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from extensions import mysql
 import json
-import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from utils.auth_utils import login_required
 
 booking_bp = Blueprint('booking', __name__)
@@ -10,321 +9,407 @@ booking_bp = Blueprint('booking', __name__)
 @booking_bp.route('/bookings')
 @login_required
 def bookings():
-    # Get all bookings for the logged-in user
-    cursor = mysql.connection.cursor()
-    cursor.execute('''
-        SELECT b.*, t.destination 
-        FROM bookings b
-        JOIN trips t ON b.trip_id = t.id
-        WHERE t.user_id = %s 
-        ORDER BY b.booking_date DESC
-    ''', (session['user_id'],))
-    bookings = cursor.fetchall()
-    cursor.close()
-    
-    return render_template('bookings.html', bookings=bookings)
+    cursor = None
+    try:
+        # Get all bookings for the logged-in user
+        cursor = mysql.connection.cursor()
+        cursor.execute('''
+            SELECT b.*, t.destination 
+            FROM bookings b
+            JOIN trips t ON b.trip_id = t.id
+            WHERE t.user_id = %s 
+            ORDER BY b.booking_date DESC
+        ''', (session['user_id'],))
+        bookings = cursor.fetchall()
+        
+        return render_template('bookings.html', bookings=bookings)
+    except Exception as e:
+        flash(f'Error loading bookings: {str(e)}', 'danger')
+        return redirect(url_for('trip.trips'))
+    finally:
+        if cursor:
+            cursor.close()
 
 @booking_bp.route('/trips/<int:trip_id>/bookings/new', methods=['GET', 'POST'])
 @login_required
 def new_booking(trip_id):
-    # Check if trip exists and belongs to user
-    cursor = mysql.connection.cursor()
-    cursor.execute('''
-        SELECT * FROM trips 
-        WHERE id = %s AND user_id = %s
-    ''', (trip_id, session['user_id']))
-    trip = cursor.fetchone()
-    
-    if not trip:
-        flash('Trip not found', 'danger')
-        return redirect(url_for('trip.trips'))
-    
-    if request.method == 'POST':
-        # Get form data
-        booking_type = request.form['booking_type']
-        provider = request.form['provider']
-        booking_details = request.form['booking_details']
-        booking_date = request.form['booking_date']
-        price = request.form['price']
-        
-        # Validate form data
-        if not booking_type or not provider or not booking_details or not booking_date or not price:
-            flash('Please fill out all required fields', 'danger')
-            return render_template('new_booking.html', trip=trip)
-        
-        # Insert booking into database
+    cursor = None
+    try:
+        # Check if trip exists and belongs to user
+        cursor = mysql.connection.cursor()
         cursor.execute('''
-            INSERT INTO bookings (trip_id, booking_type, provider, booking_details, booking_date, price) 
-            VALUES (%s, %s, %s, %s, %s, %s)
-        ''', (trip_id, booking_type, provider, booking_details, booking_date, price))
-        mysql.connection.commit()
-        cursor.close()
+            SELECT * FROM trips 
+            WHERE id = %s AND user_id = %s
+        ''', (trip_id, session['user_id']))
+        trip = cursor.fetchone()
         
-        flash('Booking added successfully!', 'success')
-        return redirect(url_for('trip.view_trip', trip_id=trip_id))
-    
-    return render_template('new_booking.html', trip=trip)
+        if not trip:
+            flash('Trip not found', 'danger')
+            return redirect(url_for('trip.trips'))
+        
+        if request.method == 'POST':
+            # Get form data
+            booking_type = request.form['booking_type']
+            provider = request.form['provider']
+            booking_details = request.form['booking_details']
+            booking_date = request.form['booking_date']
+            price = request.form['price']
+            
+            # Validate form data
+            if not booking_type or not provider or not booking_details or not booking_date or not price:
+                flash('Please fill out all required fields', 'danger')
+                return render_template('new_booking.html', trip=trip)
+            
+            # Convert booking_date to datetime and price to float
+            try:
+                booking_date_obj = datetime.strptime(booking_date, '%Y-%m-%d')
+                price_float = float(price)
+            except ValueError as e:
+                flash(f'Invalid date or price format: {str(e)}', 'danger')
+                return render_template('new_booking.html', trip=trip)
+            
+            # Insert booking into database
+            cursor.execute('''
+                INSERT INTO bookings (trip_id, booking_type, provider, booking_details, booking_date, price) 
+                VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (trip_id, booking_type, provider, booking_details, booking_date_obj, price_float))
+            mysql.connection.commit()
+            
+            flash('Booking added successfully!', 'success')
+            return redirect(url_for('trip.view_trip', trip_id=trip_id))
+        
+        return render_template('new_booking.html', trip=trip)
+    except Exception as e:
+        if 'cursor' in locals() and cursor:
+            mysql.connection.rollback()
+        flash(f'Error creating booking: {str(e)}', 'danger')
+        return redirect(url_for('trip.trips'))
+    finally:
+        if cursor:
+            cursor.close()
 
 @booking_bp.route('/bookings/<int:booking_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_booking(booking_id):
-    # Get booking details
-    cursor = mysql.connection.cursor()
-    cursor.execute('''
-        SELECT b.*, t.id as trip_id, t.user_id 
-        FROM bookings b
-        JOIN trips t ON b.trip_id = t.id
-        WHERE b.id = %s
-    ''', (booking_id,))
-    booking = cursor.fetchone()
-    
-    if not booking or booking['user_id'] != session['user_id']:
-        flash('Booking not found', 'danger')
-        return redirect(url_for('booking.bookings'))
-    
-    if request.method == 'POST':
-        # Get form data
-        booking_type = request.form['booking_type']
-        provider = request.form['provider']
-        booking_details = request.form['booking_details']
-        booking_date = request.form['booking_date']
-        price = request.form['price']
-        
-        # Validate form data
-        if not booking_type or not provider or not booking_details or not booking_date or not price:
-            flash('Please fill out all required fields', 'danger')
-            return render_template('edit_booking.html', booking=booking)
-        
-        # Update booking in database
+    cursor = None
+    try:
+        # Get booking details
+        cursor = mysql.connection.cursor()
         cursor.execute('''
-            UPDATE bookings 
-            SET booking_type = %s, provider = %s, booking_details = %s, booking_date = %s, price = %s 
-            WHERE id = %s
-        ''', (booking_type, provider, booking_details, booking_date, price, booking_id))
-        mysql.connection.commit()
-        cursor.close()
+            SELECT b.*, t.id as trip_id, t.user_id 
+            FROM bookings b
+            JOIN trips t ON b.trip_id = t.id
+            WHERE b.id = %s
+        ''', (booking_id,))
+        booking = cursor.fetchone()
         
-        flash('Booking updated successfully!', 'success')
-        return redirect(url_for('trip.view_trip', trip_id=booking['trip_id']))
-    
-    return render_template('edit_booking.html', booking=booking)
+        if not booking or booking['user_id'] != session['user_id']:
+            flash('Booking not found', 'danger')
+            return redirect(url_for('booking.bookings'))
+        
+        if request.method == 'POST':
+            # Get form data
+            booking_type = request.form['booking_type']
+            provider = request.form['provider']
+            booking_details = request.form['booking_details']
+            booking_date = request.form['booking_date']
+            price = request.form['price']
+            
+            # Validate form data
+            if not booking_type or not provider or not booking_details or not booking_date or not price:
+                flash('Please fill out all required fields', 'danger')
+                return render_template('edit_booking.html', booking=booking)
+            
+            # Convert booking_date to datetime and price to float
+            try:
+                booking_date_obj = datetime.strptime(booking_date, '%Y-%m-%d')
+                price_float = float(price)
+            except ValueError as e:
+                flash(f'Invalid date or price format: {str(e)}', 'danger')
+                return render_template('edit_booking.html', booking=booking)
+            
+            # Update booking in database
+            cursor.execute('''
+                UPDATE bookings 
+                SET booking_type = %s, provider = %s, booking_details = %s, booking_date = %s, price = %s 
+                WHERE id = %s
+            ''', (booking_type, provider, booking_details, booking_date_obj, price_float, booking_id))
+            mysql.connection.commit()
+            
+            flash('Booking updated successfully!', 'success')
+            return redirect(url_for('trip.view_trip', trip_id=booking['trip_id']))
+        
+        return render_template('edit_booking.html', booking=booking)
+    except Exception as e:
+        if 'cursor' in locals() and cursor:
+            mysql.connection.rollback()
+        flash(f'Error editing booking: {str(e)}', 'danger')
+        return redirect(url_for('booking.bookings'))
+    finally:
+        if cursor:
+            cursor.close()
 
 @booking_bp.route('/bookings/<int:booking_id>/delete', methods=['POST'])
 @login_required
 def delete_booking(booking_id):
-    # Check if booking exists and belongs to user's trip
-    cursor = mysql.connection.cursor()
-    cursor.execute('''
-        SELECT b.*, t.id as trip_id, t.user_id 
-        FROM bookings b
-        JOIN trips t ON b.trip_id = t.id
-        WHERE b.id = %s
-    ''', (booking_id,))
-    booking = cursor.fetchone()
-    
-    if not booking or booking['user_id'] != session['user_id']:
-        flash('Booking not found', 'danger')
+    cursor = None
+    try:
+        # Check if booking exists and belongs to user's trip
+        cursor = mysql.connection.cursor()
+        cursor.execute('''
+            SELECT b.*, t.id as trip_id, t.user_id 
+            FROM bookings b
+            JOIN trips t ON b.trip_id = t.id
+            WHERE b.id = %s
+        ''', (booking_id,))
+        booking = cursor.fetchone()
+        
+        if not booking or booking['user_id'] != session['user_id']:
+            flash('Booking not found', 'danger')
+            return redirect(url_for('booking.bookings'))
+        
+        # Delete booking
+        cursor.execute('DELETE FROM bookings WHERE id = %s', (booking_id,))
+        mysql.connection.commit()
+        
+        flash('Booking deleted successfully!', 'success')
+        return redirect(url_for('trip.view_trip', trip_id=booking['trip_id']))
+    except Exception as e:
+        if 'cursor' in locals() and cursor:
+            mysql.connection.rollback()
+        flash(f'Error deleting booking: {str(e)}', 'danger')
         return redirect(url_for('booking.bookings'))
-    
-    # Delete booking
-    cursor.execute('DELETE FROM bookings WHERE id = %s', (booking_id,))
-    mysql.connection.commit()
-    cursor.close()
-    
-    flash('Booking deleted successfully!', 'success')
-    return redirect(url_for('trip.view_trip', trip_id=booking['trip_id']))
+    finally:
+        if cursor:
+            cursor.close()
 
 @booking_bp.route('/search/flights', methods=['GET'])
 @login_required
 def search_flights():
-    # Get trip_id from query parameters
-    trip_id = request.args.get('trip_id')
+    cursor = None
+    try:
+        # Get trip_id from query parameters
+        trip_id = request.args.get('trip_id')
 
-    # Get user's trips for the dropdown
-    cursor = mysql.connection.cursor()
-    cursor.execute('''
-        SELECT * FROM trips
-        WHERE user_id = %s
-        ORDER BY start_date DESC
-    ''', (session['user_id'],))
-    user_trips = cursor.fetchall()
-
-    # If trip_id is provided, get the trip details
-    trip = None
-    if trip_id:
+        # Get user's trips for the dropdown
+        cursor = mysql.connection.cursor()
         cursor.execute('''
             SELECT * FROM trips
-            WHERE id = %s AND user_id = %s
-        ''', (trip_id, session['user_id']))
-        trip = cursor.fetchone()
+            WHERE user_id = %s
+            ORDER BY start_date DESC
+        ''', (session['user_id'],))
+        user_trips = cursor.fetchall()
 
-    cursor.close()
+        # If trip_id is provided, get the trip details
+        trip = None
+        if trip_id:
+            cursor.execute('''
+                SELECT * FROM trips
+                WHERE id = %s AND user_id = %s
+            ''', (trip_id, session['user_id']))
+            trip = cursor.fetchone()
 
-    # Get search parameters
-    origin = request.args.get('origin')
-    destination = request.args.get('destination')
-    departure_date = request.args.get('departure_date')
-    return_date = request.args.get('return_date')
-    adults = request.args.get('adults', 1)
+        # Get search parameters
+        origin = request.args.get('origin')
+        destination = request.args.get('destination')
+        departure_date = request.args.get('departure_date')
+        return_date = request.args.get('return_date')
+        adults = request.args.get('adults', 1)
 
-    # Initialize flights to None
-    flights = None
+        # Initialize flights to None
+        flights = None
 
-    # If all required parameters are provided, search for flights
-    if origin and destination and departure_date:
-        try:
-            # In a real implementation, you would call the Skyscanner API here
-            # For this example, we'll return mock data
-            flights = search_skyscanner_flights(origin, destination, departure_date, return_date, adults)
-        except Exception as e:
-            flash(f'Error searching for flights: {str(e)}', 'danger')
+        # If all required parameters are provided, search for flights
+        if origin and destination and departure_date:
+            try:
+                # In a real implementation, you would call the Skyscanner API here
+                # For this example, we'll return mock data
+                flights = search_skyscanner_flights(origin, destination, departure_date, return_date, adults)
+            except Exception as e:
+                flash(f'Error searching for flights: {str(e)}', 'danger')
 
-    return render_template('search_flights.html',
-                          user_trips=user_trips,
-                          trip=trip,
-                          flights=flights,
-                          search_params={
-                              'origin': origin,
-                              'destination': destination,
-                              'departure_date': departure_date,
-                              'return_date': return_date,
-                              'adults': adults
-                          })
+        return render_template('search_flights.html',
+                              user_trips=user_trips,
+                              trip=trip,
+                              flights=flights,
+                              search_params={
+                                  'origin': origin,
+                                  'destination': destination,
+                                  'departure_date': departure_date,
+                                  'return_date': return_date,
+                                  'adults': adults
+                              })
+    except Exception as e:
+        flash(f'Error loading flight search: {str(e)}', 'danger')
+        return redirect(url_for('trip.trips'))
+    finally:
+        if cursor:
+            cursor.close()
 
 @booking_bp.route('/search/hotels', methods=['GET'])
 @login_required
 def search_hotels():
-    # Get trip_id from query parameters
-    trip_id = request.args.get('trip_id')
+    cursor = None
+    try:
+        # Get trip_id from query parameters
+        trip_id = request.args.get('trip_id')
 
-    # Get user's trips for the dropdown
-    cursor = mysql.connection.cursor()
-    cursor.execute('''
-        SELECT * FROM trips
-        WHERE user_id = %s
-        ORDER BY start_date DESC
-    ''', (session['user_id'],))
-    user_trips = cursor.fetchall()
-
-    # If trip_id is provided, get the trip details
-    trip = None
-    if trip_id:
+        # Get user's trips for the dropdown
+        cursor = mysql.connection.cursor()
         cursor.execute('''
             SELECT * FROM trips
-            WHERE id = %s AND user_id = %s
-        ''', (trip_id, session['user_id']))
-        trip = cursor.fetchone()
+            WHERE user_id = %s
+            ORDER BY start_date DESC
+        ''', (session['user_id'],))
+        user_trips = cursor.fetchall()
 
-    cursor.close()
+        # If trip_id is provided, get the trip details
+        trip = None
+        if trip_id:
+            cursor.execute('''
+                SELECT * FROM trips
+                WHERE id = %s AND user_id = %s
+            ''', (trip_id, session['user_id']))
+            trip = cursor.fetchone()
 
-    # Get search parameters
-    destination = request.args.get('destination')
-    check_in = request.args.get('check_in')
-    check_out = request.args.get('check_out')
-    guests = request.args.get('guests', 2)
+        # Get search parameters
+        destination = request.args.get('destination')
+        check_in = request.args.get('check_in')
+        check_out = request.args.get('check_out')
+        guests = request.args.get('guests', 2)
 
-    # Initialize hotels to None
-    hotels = None
+        # Initialize hotels to None
+        hotels = None
 
-    # If all required parameters are provided, search for hotels
-    if destination and check_in and check_out:
-        try:
-            # In a real implementation, you would call the Booking.com API here
-            # For this example, we'll return mock data
-            hotels = search_booking_hotels(destination, check_in, check_out, guests)
-        except Exception as e:
-            flash(f'Error searching for hotels: {str(e)}', 'danger')
+        # If all required parameters are provided, search for hotels
+        if destination and check_in and check_out:
+            try:
+                # In a real implementation, you would call the Booking.com API here
+                # For this example, we'll return mock data
+                hotels = search_booking_hotels(destination, check_in, check_out, guests)
+            except Exception as e:
+                flash(f'Error searching for hotels: {str(e)}', 'danger')
 
-    return render_template('search_hotels.html',
-                          user_trips=user_trips,
-                          trip=trip,
-                          hotels=hotels,
-                          search_params={
-                              'destination': destination,
-                              'check_in': check_in,
-                              'check_out': check_out,
-                              'guests': guests
-                          })
+        return render_template('search_hotels.html',
+                              user_trips=user_trips,
+                              trip=trip,
+                              hotels=hotels,
+                              search_params={
+                                  'destination': destination,
+                                  'check_in': check_in,
+                                  'check_out': check_out,
+                                  'guests': guests
+                              })
+    except Exception as e:
+        flash(f'Error loading hotel search: {str(e)}', 'danger')
+        return redirect(url_for('trip.trips'))
+    finally:
+        if cursor:
+            cursor.close()
 
 @booking_bp.route('/book/flight', methods=['POST'])
 @login_required
 def book_flight():
-    # Get booking details
-    data = request.json
-    trip_id = data.get('trip_id')
-    flight_id = data.get('flight_id')
-    
-    if not trip_id or not flight_id:
-        return jsonify({'error': 'Missing required parameters'}), 400
-    
-    # Check if trip exists and belongs to user
-    cursor = mysql.connection.cursor()
-    cursor.execute('''
-        SELECT * FROM trips 
-        WHERE id = %s AND user_id = %s
-    ''', (trip_id, session['user_id']))
-    trip = cursor.fetchone()
-    
-    if not trip:
-        return jsonify({'error': 'Trip not found'}), 404
-    
-    # Get flight details (mock implementation)
-    flight = get_flight_details(flight_id)
-    
-    if not flight:
-        return jsonify({'error': 'Flight not found'}), 404
-    
-    # Insert booking into database
-    booking_details = json.dumps(flight)
-    cursor.execute('''
-        INSERT INTO bookings (trip_id, booking_type, provider, booking_details, booking_date, price) 
-        VALUES (%s, %s, %s, %s, %s, %s)
-    ''', (trip_id, 'Flight', flight['airline'], booking_details, flight['departure_date'], flight['price']))
-    mysql.connection.commit()
-    booking_id = cursor.lastrowid
-    cursor.close()
-    
-    return jsonify({'success': True, 'booking_id': booking_id})
+    cursor = None
+    try:
+        # Get booking details
+        data = request.json
+        trip_id = data.get('trip_id')
+        flight_id = data.get('flight_id')
+        
+        if not trip_id or not flight_id:
+            return jsonify({'error': 'Missing required parameters'}), 400
+        
+        # Check if trip exists and belongs to user
+        cursor = mysql.connection.cursor()
+        cursor.execute('''
+            SELECT * FROM trips 
+            WHERE id = %s AND user_id = %s
+        ''', (trip_id, session['user_id']))
+        trip = cursor.fetchone()
+        
+        if not trip:
+            return jsonify({'error': 'Trip not found'}), 404
+        
+        # Get flight details (mock implementation)
+        flight = get_flight_details(flight_id)
+        
+        if not flight:
+            return jsonify({'error': 'Flight not found'}), 404
+        
+        # Convert departure_date to datetime
+        departure_date = datetime.strptime(flight['departure_date'], '%Y-%m-%d')
+        price = float(flight['price'])
+        
+        # Insert booking into database
+        booking_details = json.dumps(flight)
+        cursor.execute('''
+            INSERT INTO bookings (trip_id, booking_type, provider, booking_details, booking_date, price) 
+            VALUES (%s, %s, %s, %s, %s, %s)
+        ''', (trip_id, 'Flight', flight['airline'], booking_details, departure_date, price))
+        mysql.connection.commit()
+        booking_id = cursor.lastrowid
+        
+        return jsonify({'success': True, 'booking_id': booking_id})
+    except Exception as e:
+        if 'cursor' in locals() and cursor:
+            mysql.connection.rollback()
+        return jsonify({'error': f'Error booking flight: {str(e)}'}), 500
+    finally:
+        if cursor:
+            cursor.close()
 
 @booking_bp.route('/book/hotel', methods=['POST'])
 @login_required
 def book_hotel():
-    # Get booking details
-    data = request.json
-    trip_id = data.get('trip_id')
-    hotel_id = data.get('hotel_id')
-    
-    if not trip_id or not hotel_id:
-        return jsonify({'error': 'Missing required parameters'}), 400
-    
-    # Check if trip exists and belongs to user
-    cursor = mysql.connection.cursor()
-    cursor.execute('''
-        SELECT * FROM trips 
-        WHERE id = %s AND user_id = %s
-    ''', (trip_id, session['user_id']))
-    trip = cursor.fetchone()
-    
-    if not trip:
-        return jsonify({'error': 'Trip not found'}), 404
-    
-    # Get hotel details (mock implementation)
-    hotel = get_hotel_details(hotel_id)
-    
-    if not hotel:
-        return jsonify({'error': 'Hotel not found'}), 404
-    
-    # Insert booking into database
-    booking_details = json.dumps(hotel)
-    cursor.execute('''
-        INSERT INTO bookings (trip_id, booking_type, provider, booking_details, booking_date, price) 
-        VALUES (%s, %s, %s, %s, %s, %s)
-    ''', (trip_id, 'Hotel', hotel['name'], booking_details, trip['start_date'], hotel['price_per_night'] * (trip['end_date'] - trip['start_date']).days))
-    mysql.connection.commit()
-    booking_id = cursor.lastrowid
-    cursor.close()
-    
-    return jsonify({'success': True, 'booking_id': booking_id})
+    cursor = None
+    try:
+        # Get booking details
+        data = request.json
+        trip_id = data.get('trip_id')
+        hotel_id = data.get('hotel_id')
+        
+        if not trip_id or not hotel_id:
+            return jsonify({'error': 'Missing required parameters'}), 400
+        
+        # Check if trip exists and belongs to user
+        cursor = mysql.connection.cursor()
+        cursor.execute('''
+            SELECT * FROM trips 
+            WHERE id = %s AND user_id = %s
+        ''', (trip_id, session['user_id']))
+        trip = cursor.fetchone()
+        
+        if not trip:
+            return jsonify({'error': 'Trip not found'}), 404
+        
+        # Get hotel details (mock implementation)
+        hotel = get_hotel_details(hotel_id)
+        
+        if not hotel:
+            return jsonify({'error': 'Hotel not found'}), 404
+        
+        # Calculate total price based on number of nights
+        num_nights = (trip['end_date'] - trip['start_date']).days
+        total_price = float(hotel['price_per_night']) * num_nights
+        
+        # Insert booking into database
+        booking_details = json.dumps(hotel)
+        cursor.execute('''
+            INSERT INTO bookings (trip_id, booking_type, provider, booking_details, booking_date, price) 
+            VALUES (%s, %s, %s, %s, %s, %s)
+        ''', (trip_id, 'Hotel', hotel['name'], booking_details, trip['start_date'], total_price))
+        mysql.connection.commit()
+        booking_id = cursor.lastrowid
+        
+        return jsonify({'success': True, 'booking_id': booking_id})
+    except Exception as e:
+        if 'cursor' in locals() and cursor:
+            mysql.connection.rollback()
+        return jsonify({'error': f'Error booking hotel: {str(e)}'}), 500
+    finally:
+        if cursor:
+            cursor.close()
 
 # Mock implementations of third-party API calls
 def search_skyscanner_flights(origin, destination, departure_date, return_date, adults):

@@ -3,173 +3,318 @@
 {% block title %}Reviews - AI Trip Planner{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <h1><i class="fas fa-star me-2"></i>Travel Reviews</h1>
-    </div>
-    <div class="col-md-4 text-end">
-        <a href="{{ url_for('review.top_rated_destinations') }}" class="btn btn-outline-primary">
-            <i class="fas fa-trophy me-1"></i>Top Rated Destinations
-        </a>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <form action="{{ url_for('review.reviews') }}" method="GET" class="row g-3">
-                    <div class="col-md-4">
-                        <label for="destination" class="form-label">Destination</label>
-                        <input type="text" class="form-control" id="destination" name="destination" value="{{ request.args.get('destination', '') }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="rating" class="form-label">Minimum Rating</label>
-                        <select class="form-select" id="rating" name="rating">
-                            <option value="">Any Rating</option>
-                            <option value="5" {% if request.args.get('rating') == '5' %}selected{% endif %}>5 Stars</option>
-                            <option value="4" {% if request.args.get('rating') == '4' %}selected{% endif %}>4+ Stars</option>
-                            <option value="3" {% if request.args.get('rating') == '3' %}selected{% endif %}>3+ Stars</option>
-                            <option value="2" {% if request.args.get('rating') == '2' %}selected{% endif %}>2+ Stars</option>
-                            <option value="1" {% if request.args.get('rating') == '1' %}selected{% endif %}>1+ Star</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="sort" class="form-label">Sort By</label>
-                        <select class="form-select" id="sort" name="sort">
-                            <option value="newest" {% if request.args.get('sort') == 'newest' %}selected{% endif %}>Newest First</option>
-                            <option value="oldest" {% if request.args.get('sort') == 'oldest' %}selected{% endif %}>Oldest First</option>
-                            <option value="rating_high" {% if request.args.get('sort') == 'rating_high' %}selected{% endif %}>Highest Rating</option>
-                            <option value="rating_low" {% if request.args.get('sort') == 'rating_low' %}selected{% endif %}>Lowest Rating</option>
-                            <option value="helpful" {% if request.args.get('sort') == 'helpful' %}selected{% endif %}>Most Helpful</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-filter me-1"></i>Filter
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% if reviews %}
-<div class="row">
-    {% for review in reviews %}
-    <div class="col-md-6 mb-4">
-        <div class="card h-100 review-card">
-            <div class="card-header bg-light">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">{{ review.title }}</h5>
-                    <div class="star-rating">
-                        {% for i in range(5) %}
-                            {% if i < review.rating %}
-                            <i class="fas fa-star"></i>
-                            {% else %}
-                            <i class="far fa-star"></i>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="text-muted small">
-                    <span><i class="fas fa-map-marker-alt me-1"></i>{{ review.destination }}</span>
-                    <span class="ms-3"><i class="fas fa-user me-1"></i>{{ review.username }}</span>
-                </div>
-            </div>
-            <div class="card-body">
-                <p class="card-text">{{ review.content }}</p>
-            </div>
-            <div class="card-footer bg-white d-flex justify-content-between align-items-center">
-                <small class="text-muted">{{ review.created_at.strftime('%b %d, %Y') }}</small>
-                <div>
-                    <button class="btn btn-sm btn-outline-primary helpful-btn {% if review.user_found_helpful %}active{% endif %}" 
-                            data-review-id="{{ review.id }}" 
-                            data-helpful-count="{{ review.helpful_count }}">
-                        <i class="fas fa-thumbs-up me-1"></i>
-                        <span class="helpful-count">{{ review.helpful_count }}</span> Helpful
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-
-<!-- Pagination -->
-{% if pagination.pages > 1 %}
-<div class="row">
-    <div class="col-md-12">
-        <nav aria-label="Page navigation">
-            <ul class="pagination justify-content-center">
-                <li class="page-item {% if pagination.page == 1 %}disabled{% endif %}">
-                    <a class="page-link" href="{{ url_for('review.reviews', page=pagination.page-1, **request.args) }}" tabindex="-1">Previous</a>
-                </li>
-                
-                {% for p in range(1, pagination.pages + 1) %}
-                <li class="page-item {% if p == pagination.page %}active{% endif %}">
-                    <a class="page-link" href="{{ url_for('review.reviews', page=p, **request.args) }}">{{ p }}</a>
-                </li>
-                {% endfor %}
-                
-                <li class="page-item {% if pagination.page == pagination.pages %}disabled{% endif %}">
-                    <a class="page-link" href="{{ url_for('review.reviews', page=pagination.page+1, **request.args) }}">Next</a>
-                </li>
-            </ul>
+    <div class="container mt-5">
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item active" aria-current="page">Reviews</li>
+            </ol>
         </nav>
-    </div>
-</div>
-{% endif %}
 
-{% else %}
-<div class="row">
-    <div class="col-md-12">
-        <div class="text-center py-5">
-            <i class="far fa-comment-dots fa-3x text-muted mb-3"></i>
-            <h4>No reviews found</h4>
-            <p class="text-muted">Be the first to share your travel experience!</p>
+        <!-- Back to Home Button -->
+        <div class="mb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Home
+            </a>
+        </div>
+
+        <h2>Trip Reviews</h2>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Add Review Form (for logged-in users) -->
+        {% if user_trips %}
+            <h3>Add a Review</h3>
+            <form id="reviewForm" method="POST">
+                <div class="mb-3">
+                    <label for="trip_id" class="form-label">Select Trip</label>
+                    <select class="form-control" id="trip_id" name="trip_id" required>
+                        <option value="">-- Select a Trip --</option>
+                        {% for trip in user_trips %}
+                            <option value="{{ trip.id }}">{{ trip.destination }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="rating" class="form-label">Rating (1-5)</label>
+                    <input type="number" class="form-control" id="rating" name="rating" min="1" max="5" required>
+                </div>
+                <div class="mb-3">
+                    <label for="title" class="form-label">Title</label>
+                    <input type="text" class="form-control" id="title" name="title" required>
+                </div>
+                <div class="mb-3">
+                    <label for="content" class="form-label">Review Content</label>
+                    <textarea class="form-control" id="content" name="content" rows="3" required></textarea>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="is_public" name="is_public">
+                    <label class="form-check-label" for="is_public">Make this review public</label>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Review</button>
+            </form>
+        {% else %}
+            <p><a href="{{ url_for('auth.login') }}">Log in</a> to add a review.</p>
+        {% endif %}
+
+        <!-- User's Reviews (Public and Private) -->
+        {% if session.get('user_id') %}
+            <h3 class="mt-5">My Reviews</h3>
+            <div id="user-reviews">
+                {% if user_reviews %}
+                    {% for review in user_reviews %}
+                        <div class="card mb-3 review-card" data-review-id="{{ review.id }}">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ review.title }} ({{ review.rating }}/5)</h5>
+                                <p class="card-text">{{ review.content }}</p>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        By {{ review.username }} for {{ review.destination }} on {{ review.created_at.strftime('%b %d, %Y') }}
+                                        {% if review.is_public %}
+                                            <span class="badge bg-success ms-2">Public</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary ms-2">Private</span>
+                                        {% endif %}
+                                    </small>
+                                </p>
+                                <p class="card-text">
+                                    Helpful: <span class="helpful-count">{{ review.helpful_count }}</span>
+                                    <button class="btn btn-sm btn-outline-primary mark-helpful" 
+                                            data-review-id="{{ review.id }}"
+                                            data-helpful="{{ review.helpful_count }}">Mark as Helpful</button>
+                                </p>
+                                <a href="{{ url_for('review.edit_review', review_id=review.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                <form method="POST" action="{{ url_for('review.delete_review', review_id=review.id) }}" style="display:inline;" class="delete-review-form">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this review?')">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>You haven't submitted any reviews yet.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Public Reviews -->
+        <h3 class="mt-5">Public Reviews</h3>
+        <div id="public-reviews">
+            {% if reviews %}
+                {% for review in reviews %}
+                    <div class="card mb-3 review-card" data-review-id="{{ review.id }}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ review.title }} ({{ review.rating }}/5)</h5>
+                            <p class="card-text">{{ review.content }}</p>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    By {{ review.username }} for {{ review.destination }} on {{ review.created_at.strftime('%b %d, %Y') }}
+                                </small>
+                            </p>
+                            <p class="card-text">
+                                Helpful: <span class="helpful-count">{{ review.helpful_count }}</span>
+                                {% if session.get('user_id') %}
+                                    <button class="btn btn-sm btn-outline-primary mark-helpful" 
+                                            data-review-id="{{ review.id }}"
+                                            data-helpful="{{ review.helpful_count }}">Mark as Helpful</button>
+                                {% endif %}
+                            </p>
+                            {% if review.user_id == session.get('user_id') %}
+                                <a href="{{ url_for('review.edit_review', review_id=review.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                <form method="POST" action="{{ url_for('review.delete_review', review_id=review.id) }}" style="display:inline;" class="delete-review-form">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this review?')">Delete</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+
+                <!-- Pagination Controls -->
+                {% if pagination.pages > 1 %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            {% if pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('review.reviews', page=pagination.page-1) }}" aria-label="Previous">
+                                        <span aria-hidden="true">« Previous</span>
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Previous</span>
+                                </li>
+                            {% endif %}
+
+                            {% for p in range(1, pagination.pages + 1) %}
+                                <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('review.reviews', page=p) }}">{{ p }}</a>
+                                </li>
+                            {% endfor %}
+
+                            {% if pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('review.reviews', page=pagination.page+1) }}" aria-label="Next">
+                                        <span aria-hidden="true">Next »</span>
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Next</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <p>No public reviews yet.</p>
+            {% endif %}
         </div>
     </div>
-</div>
-{% endif %}
-{% endblock %}
 
-{% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle helpful button clicks
-        const helpfulButtons = document.querySelectorAll('.helpful-btn');
-        
-        helpfulButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const reviewId = this.getAttribute('data-review-id');
-                
-                fetch(`/reviews/helpful/${reviewId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Update button state and count
-                        const countElement = this.querySelector('.helpful-count');
-                        countElement.textContent = data.count;
-                        
-                        if (data.helpful) {
-                            this.classList.add('active');
+    <style>
+        .review-card {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .pagination {
+            justify-content: center;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Handle review form submission via AJAX
+            $('#reviewForm').on('submit', function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: '{{ url_for("review.new_review") }}',
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        if (response.success) {
+                            const review = response.review;
+                            const isPublic = $('#is_public').is(':checked');
+                            const userId = {{ session.get('user_id') | tojson }};
+
+                            // Prepare the review HTML
+                            const reviewHtml = `
+                                <div class="card mb-3 review-card" data-review-id="${review.id}">
+                                    <div class="card-body">
+                                        <h5 class="card-title">${review.title} (${review.rating}/5)</h5>
+                                        <p class="card-text">${review.content}</p>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                By ${review.username} for ${review.destination} on ${review.created_at}
+                                                ${isPublic ? '<span class="badge bg-success ms-2">Public</span>' : '<span class="badge bg-secondary ms-2">Private</span>'}
+                                            </small>
+                                        </p>
+                                        <p class="card-text">
+                                            Helpful: <span class="helpful-count">0</span>
+                                            <button class="btn btn-sm btn-outline-primary mark-helpful" 
+                                                    data-review-id="${review.id}"
+                                                    data-helpful="0">Mark as Helpful</button>
+                                        </p>
+                                        <a href="/reviews/${review.id}/edit" class="btn btn-sm btn-warning">Edit</a>
+                                        <form method="POST" action="/reviews/${review.id}/delete" style="display:inline;" class="delete-review-form">
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this review?')">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>`;
+
+                            // Append to "My Reviews" section
+                            const userReviews = $('#user-reviews');
+                            if (userReviews.find('p').length) {
+                                userReviews.empty();
+                                userReviews.append(reviewHtml);
+                            } else {
+                                userReviews.prepend(reviewHtml);
+                            }
+
+                            // Append to "Public Reviews" section if public
+                            if (isPublic) {
+                                const publicReviews = $('#public-reviews');
+                                if (publicReviews.find('p').length) {
+                                    publicReviews.empty();
+                                    publicReviews.append(reviewHtml);
+                                } else {
+                                    publicReviews.prepend(reviewHtml);
+                                }
+                            }
+
+                            $('#reviewForm')[0].reset();
+                            alert('Review added successfully!');
                         } else {
-                            this.classList.remove('active');
+                            alert(response.message);
                         }
+                    },
+                    error: function() {
+                        alert('An error occurred while submitting the review.');
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
                 });
             });
+
+            // Handle "Mark as Helpful" button clicks
+            $(document).on('click', '.mark-helpful', function() {
+                const button = $(this);
+                const reviewId = button.data('review-id');
+                $.ajax({
+                    url: `/reviews/helpful/${reviewId}`,
+                    type: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            const countSpan = button.siblings('.helpful-count');
+                            countSpan.text(response.count);
+                            button.text(response.helpful ? 'Unmark as Helpful' : 'Mark as Helpful');
+                            button.data('helpful', response.count);
+                        } else {
+                            alert(response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('An error occurred while marking the review as helpful.');
+                    }
+                });
+            });
+
+            // Handle review deletion via AJAX
+            $(document).on('submit', '.delete-review-form', function(e) {
+                e.preventDefault();
+                const form = $(this);
+                const reviewId = form.closest('.card').data('review-id');
+                
+                if (confirm('Are you sure you want to delete this review?')) {
+                    $.ajax({
+                        url: form.attr('action'),
+                        type: 'POST',
+                        success: function(response) {
+                            // Remove the review from both sections
+                            $(`div[data-review-id="${reviewId}"]`).remove();
+                            
+                            // Check if sections are empty and add placeholder text
+                            if ($('#user-reviews').children('.card').length === 0) {
+                                $('#user-reviews').html('<p>You haven\'t submitted any reviews yet.</p>');
+                            }
+                            if ($('#public-reviews').children('.card').length === 0) {
+                                $('#public-reviews').html('<p>No public reviews yet.</p>');
+                            }
+                            alert('Review deleted successfully!');
+                        },
+                        error: function() {
+                            alert('An error occurred while deleting the review.');
+                        }
+                    });
+                }
+            });
         });
-    });
-</script>
+    </script>
 {% endblock %}

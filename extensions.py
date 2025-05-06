@@ -40,8 +40,19 @@ def create_app():
     app.config['MYSQL_DB'] = os.getenv('MYSQL_DB', 'trip_planner2')
     app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
     
+    # Log the MySQL configuration
+    print(f"Configuring MySQL with host: {app.config['MYSQL_HOST']}, "
+          f"user: {app.config['MYSQL_USER']}, "
+          f"db: {app.config['MYSQL_DB']}")
+    
     # Initialize extensions with app
-    mysql.init_app(app)
+    try:
+        mysql.init_app(app)
+        print("MySQL initialized successfully")
+    except Exception as e:
+        print(f"Error initializing MySQL: {str(e)}")
+        raise
+    
     bcrypt.init_app(app)
     
     return app

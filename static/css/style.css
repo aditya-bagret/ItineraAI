@@ -17,6 +17,7 @@ body {
     animation: slideUp 1.0s ease-out forwards; /* Sliding animation */
     opacity: 0; /* Initial state */
     animation-delay: 0.1s; /* Slight delay for navbar */
+    display: block !important; /* Ensure navbar is always visible */
 }
 
 .navbar:hover {
